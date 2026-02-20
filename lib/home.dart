@@ -3,9 +3,9 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:u_down2/player.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 // ignore: library_prefixes
@@ -19,17 +19,11 @@ class Principale extends StatefulWidget {
 }
 
 class _PrincipaleState extends State<Principale> {
-  //var here
-
   bool isOnlyMp3 = false;
   String _userInput = "";
-  dynamic _thumbnail = "";
-  String _title = "";
-  String _descr = "";
   String _statusText = "Esegui una ricerca";
   int _status = 0;
-  // double _progress = 0.0;
-  bool _alreadyPlayed = false;
+  List<Video> _searchRes = [];
 
   final ValueNotifier<double> _progressNotifier = ValueNotifier<double>(0.0);
   // final ValueNotifier<String> _statusNotifier = ValueNotifier<String>("Inizializzazione...");
@@ -64,7 +58,11 @@ class _PrincipaleState extends State<Principale> {
                               value: progress,
                               strokeWidth: 12,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Color.lerp(Colors.redAccent, Colors.green, progress)!,
+                                Color.lerp(
+                                  Colors.redAccent,
+                                  Colors.green,
+                                  progress,
+                                )!,
                               ),
                               backgroundColor: Colors.grey[200],
                             ),
@@ -75,7 +73,11 @@ class _PrincipaleState extends State<Principale> {
                           style: TextStyle(
                             fontSize: 25,
                             fontWeight: FontWeight.bold,
-                            color: Color.lerp(Colors.redAccent, Colors.green[900], progress)!,
+                            color: Color.lerp(
+                              Colors.redAccent,
+                              Colors.green[900],
+                              progress,
+                            )!,
                           ),
                         ),
                       ],
@@ -93,6 +95,7 @@ class _PrincipaleState extends State<Principale> {
   }
 
   _spinnerino() {
+    log("spinnerino");
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Column(
@@ -104,61 +107,24 @@ class _PrincipaleState extends State<Principale> {
     );
   }
 
-  bool _blasphemyHandler(String url) {
-    var res = false;
-    // ignore: non_constant_identifier_names
-    List<String> black_list = ['porn', 'pornhub', 'xvid', 'spank'];
-    for (var element in black_list) {
-      if (url.contains(element)) {
-        res = true;
-      }
-    }
-    return res;
-  }
+  // bool _blasphemyHandler(String url) {
+  //   var res = false;
+  //   // ignore: non_constant_identifier_names
+  //   List<String> black_list = ['porn', 'pornhub', 'xvid', 'spank'];
+  //   for (var element in black_list) {
+  //     if (url.contains(element)) {
+  //       res = true;
+  //     }
+  //   }
+  //   return res;
+  // }
 
-  Future<void> searchThumbnail(String url) async {
-    log("searching");
-    bool isBlasphemy = _blasphemyHandler(url);
-    if (isBlasphemy) {
-      setState(() {
-        _status = 2;
-        _thumbnail = SizedBox(
-          width: double.infinity,
-          child: Image.asset("assets/images/sb_ho.jpg", fit: BoxFit.fill),
-        );
-        _title = "boo";
-        _descr = "humm...";
-      });
-      return;
-    }
-    try {
-      setState(() {
-        _statusText = "Cerco...";
-        _status = 1;
-      });
-      final yt = YoutubeExplode();
-      final video = await yt.videos.get(url);
-      setState(() {
-        _status = 2;
-        _thumbnail = Image.network(video.thumbnails.highResUrl);
-        _title = video.title;
-        _descr = video.description;
-      });
-    } catch (e) {
-      setState(() {
-        _status = -1;
-        _statusText = "url non valido";
-      });
-    }
-  }
-
-  Future<void> execute(String url, String type) async {
+  Future<void> _execute({required String url, required String type}) async {
     _progressNotifier.value = 0.0;
     setState(() {
       // _progress = 0.0;
       // _status = 1;
       _statusText = "Scarico manifest e content";
-      _alreadyPlayed = false;
     });
     // 1. Gestione Permessi
     PermissionStatus statusPer = type == 'mp3'
@@ -176,6 +142,7 @@ class _PrincipaleState extends State<Principale> {
       var yt = YoutubeExplode();
 
       try {
+        if (!mounted) return;
         _downloaderino(context);
         // 2. Recupero ID e Video
         String? youtubeId = YT.YoutubePlayer.convertUrlToId(url);
@@ -194,7 +161,9 @@ class _PrincipaleState extends State<Principale> {
         if (type == "mp3") {
           // Invece di manifest.audioOnly, usiamo il video più leggero che contiene l'audio
           // Il formato '18' (360p) è perfetto: è piccolo e il download è garantito
-          content = manifest.muxed.where((e) => e.videoQuality.toString().contains('360')).first;
+          content = manifest.muxed
+              .where((e) => e.videoQuality.toString().contains('360'))
+              .first;
           log("Uso il flusso muxed leggero per estrarre l'audio");
         } else {
           content = manifest.muxed.withHighestBitrate();
@@ -269,7 +238,7 @@ class _PrincipaleState extends State<Principale> {
 
   Future<String> getFilePath(String extension) async {
     String filename = extension;
-    String filePath = "/storage/emulated/0/Download/";
+    String filePath = "/storage/emulated/0/Music/";
     if (Directory(filePath).existsSync()) {
       return filePath + filename;
     } else {
@@ -279,98 +248,135 @@ class _PrincipaleState extends State<Principale> {
     }
   }
 
-  Widget _content() {
-    if (_status == 1) {
-      return _spinnerino();
+  Future<void> _cerca(String query) async {
+    log("eseguo ricerca");
+    final yt = YoutubeExplode();
+    if (query.isEmpty) return;
+    //essegno stato di loading e pulisco la query precedente
+    setState(() {
+      _status = 1;
+      _statusText = "cerco su YT... Stai calmo";
+      _searchRes.clear();
+    });
+    try {
+      VideoSearchList searchList = await yt.search.search(query);
+      setState(() {
+        _searchRes = searchList;
+      });
+    } catch (e) {
+      log("Errore nella ricerca: $e");
+    } finally {
+      setState(() {
+        _status = 0;
+      });
     }
-    if (_status == 2) {
-      return Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        elevation: 4,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(15),
-                    topRight: Radius.circular(15),
-                  ),
-                  child: _thumbnail,
-                ),
-                Positioned(
-                  bottom: 10,
-                  left: 5,
-                  child: Container(
-                    color: Colors.black54,
-                    padding: const EdgeInsets.all(7),
-                    child: SizedBox(
-                      width: 250,
-                      child: Text(
-                        overflow: TextOverflow.fade,
-                        _title,
-                        style: const TextStyle(color: Colors.white),
-                        softWrap: true,
-                      ),
+  }
+
+  // convertitore della durata del vide
+  String _videoDuration(Duration? duration) {
+    if (duration == null) {
+      return "--:--";
+    }
+    //lambda in flutter
+    String duedigits(int n) => n.toString().padLeft(2, "0");
+    // ad esempio se fosse la durata di 130 i remainder darebbe 10
+    String min = duedigits(duration.inMinutes.remainder(60));
+    String sec = duedigits(duration.inSeconds.remainder(60));
+    // se è un video di ore
+    if (duration.inHours > 0) {
+      return "${duedigits(duration.inHours)}:$min:$sec";
+    }
+    return "$min:$sec";
+  }
+
+  Widget _risultatiBuilder() {
+    return Expanded(
+      child: _status == 1
+          ? _spinnerino()
+          : ListView.builder(
+              itemCount: _searchRes.length,
+              itemBuilder: (context, index) {
+                final video = _searchRes[index];
+                return Card(
+                  elevation: 3,
+                  margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      children: [
+                        InkWell(
+                          splashColor: Colors.green,
+                          onTap: () => LoadingOverlay.of(context).show(
+                            video: video,
+                            download: (url, type) =>
+                                _execute(url: url, type: type),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadiusGeometry.circular(10),
+                                child: AspectRatio(
+                                  aspectRatio: 16 / 9,
+                                  child: Image.network(
+                                    video.thumbnails.highResUrl,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                right: 10,
+                                bottom: 5,
+                                child: Container(
+                                  color: Colors.black54,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(3.0),
+                                    child: Text(
+                                      _videoDuration(video.duration),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          video.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(video.author),
+                        SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () =>
+                                  _execute(url: video.url, type: "mp3"),
+                              child: Icon(Icons.audiotrack),
+                            ),
+                            ElevatedButton(
+                              onPressed: () =>
+                                  _execute(url: video.url, type: "mp4"),
+                              child: Icon(Icons.videocam),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                );
+              },
             ),
-            Padding(
-              padding: const EdgeInsets.all(15),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Text(_title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Text(_descr, style: TextStyle(color: Colors.grey[600])),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton(
-                    onPressed: () => execute(_userInput, "mp3"),
-                    child: const Icon(Icons.audiotrack_rounded),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => execute(_userInput, "mp4"),
-                    child: const Icon(Icons.videocam),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    } else if (_status == -1) {
-      return const Text("Copertina inesistente o URL non valido");
-    }
-    //  else if (_status == 3) {
-    //   _spinnerino();
-    // }
-    else if (_status == 9) {
-      if (!_alreadyPlayed) {
-        OpenFile.open(_statusText);
-        _alreadyPlayed = true;
-      }
-      return TextButton(
-        onPressed: () {
-          OpenFile.open(_statusText);
-        },
-        child: Text(_statusText),
-      );
-    }
-    return SizedBox();
+    );
   }
 
   @override
@@ -382,45 +388,50 @@ class _PrincipaleState extends State<Principale> {
         // ignore: prefer_const_constructors
         title: const Text("Yotube Mp3 Downloader and Beyond"),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              TextField(
-                controller: _linkController,
-                onTap: () => _linkController.selection = TextSelection(
-                  baseOffset: 0,
-                  extentOffset: _linkController.value.text.length,
-                ),
-                decoration: const InputDecoration(labelText: "Yotube link"),
-                onChanged: (value) {
-                  setState(() {
-                    _userInput = value;
-                  });
-                },
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            TextField(
+              controller: _linkController,
+              // onTap: () => _linkController.selection = TextSelection(
+              //   baseOffset: 0,
+              //   extentOffset: _linkController.value.text.length,
+              // ),
+              onSubmitted: (_userInput == "")
+                  ? null
+                  : (val) {
+                      FocusScope.of(context).unfocus();
+                      _cerca(val);
+                    },
+              decoration: const InputDecoration(labelText: "Cerca su YT"),
+              onChanged: (value) {
+                setState(() {
+                  _userInput = value;
+                });
+              },
+            ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              child: ElevatedButton(
+                onPressed: (_userInput == "")
+                    ? null
+                    : () {
+                        FocusScope.of(context).unfocus();
+                        _cerca(_linkController.value.text);
+                      },
+                child: const Text("Cerca"),
               ),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                child: ElevatedButton(
-                  onPressed: (_userInput == "")
-                      ? null
-                      : () {
-                          FocusScope.of(context).unfocus();
-                          searchThumbnail(_userInput);
-                        },
-                  child: const Text("Cerca"),
-                ),
-              ),
-              const SizedBox(height: 30),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: ClipRRect(borderRadius: BorderRadius.circular(10), child: _content()),
-              ),
-              const SizedBox(),
-            ],
-          ),
+            ),
+            const SizedBox(height: 30),
+            // Container(
+            //   padding: const EdgeInsets.symmetric(horizontal: 10),
+            //   child: ClipRRect(borderRadius: BorderRadius.circular(10), child: _content()),
+            // ),
+            _risultatiBuilder(),
+            const SizedBox(),
+          ],
         ),
       ),
     );

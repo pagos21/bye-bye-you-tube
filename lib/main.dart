@@ -17,9 +17,29 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       themeMode: ThemeMode.system,
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        elevatedButtonTheme: ElevatedButtonThemeData(),
+        // cardTheme: CardThemeData(color: const Color.fromARGB(255, 2, 31, 26)),
+        colorScheme: ColorScheme.fromSeed(
+          // surface: const Color(0xFF121212),
+          // surfaceContainerHighest: Colors.blueGrey[100],
+          brightness: Brightness.dark,
+          seedColor: Colors.teal[900]!,
+          // secondary: Colors.blueGrey[400],
+          // onSecondary: Colors.white,
+          // primary: Colors.blue,
+        ),
+        // scaffoldBackgroundColor: const Color(0xFF0A0A0A),
+      ),
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green, primary: Colors.green),
+        brightness: Brightness.light,
+        colorScheme: ColorScheme.fromSeed(
+          brightness: Brightness.light,
+          seedColor: Colors.green,
+          primary: Colors.green,
+        ),
       ),
       home: const MyHomePage(title: 'U_Mp3_Mp4_Downloader'),
     );
