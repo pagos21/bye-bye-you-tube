@@ -1,10 +1,13 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:u_down2/db/db_service.dart';
+import 'package:u_down2/navbar.dart';
 
-import 'home.dart';
-
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  //avvio isar
+  await mydbService.init();
   runApp(const MyApp());
 }
 
@@ -58,6 +61,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     log("Home Build!");
-    return Principale();
+    return Navbar();
   }
 }

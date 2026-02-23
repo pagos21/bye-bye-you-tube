@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   flutter_inappwebview_windows
+  isar_community_flutter_libs
   permission_handler_windows
 )
 

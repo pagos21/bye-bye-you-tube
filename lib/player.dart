@@ -2,7 +2,10 @@ import 'dart:developer';
 import 'dart:ui';
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:u_down2/collections/preferito_collection.dart';
+import 'package:u_down2/db/db_service.dart';
 import 'package:u_down2/models/posiotion_model.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
@@ -13,10 +16,7 @@ class LoadingOverlay {
     Navigator.of(_context).pop();
   }
 
-  void show({
-    required Video video,
-    required Function(String url, String type) download,
-  }) {
+  void show({required Video video, required Function(String url, String type) download}) {
     showGeneralDialog(
       context: _context,
       barrierDismissible: false,
@@ -50,6 +50,7 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
   RelatedVideosList? _relatedVideos;
   int _currentIndex = 0;
   bool _loopPlay = false;
+  bool _isFav = false;
 
   @override
   void initState() {
@@ -61,7 +62,26 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
         _playNext();
       }
     });
+    _getIsFav();
     super.initState();
+  }
+
+  Future<void> _getIsFav() async {
+    final PreferitoCollection? video = await mydbService.getVideo(_video.id.value);
+    _isFav = (video != null);
+  }
+
+  _addFav() async {
+    final newFav = PreferitoCollection()
+      ..youtubeId = _video.id.value
+      ..title = _video.title
+      ..author = _video.author
+      ..thumbnailUrl = _video.thumbnails.mediumResUrl;
+    await mydbService.togglePreferito(newFav);
+    setState(() {
+      _isFav = !_isFav;
+    });
+    HapticFeedback.mediumImpact();
   }
 
   @override
@@ -86,9 +106,7 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
       if (_currentIndex + 1 == _relatedVideos!.length) {
         _newReletedVideos();
       }
-      final StreamManifest manifest = await yt.videos.streamsClient.getManifest(
-        newVideo.url,
-      );
+      final StreamManifest manifest = await yt.videos.streamsClient.getManifest(newVideo.url);
       final AudioStreamInfo audioInfo = manifest.muxed
           .withHighestBitrate(); // usare sempre muxed anche per audio e cazzo ignora audioOnly che non va
       String finalUrl = audioInfo.url.toString();
@@ -122,6 +140,7 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
     setState(() {
       _isPaused = !_isPaused;
     });
+    HapticFeedback.lightImpact();
   }
 
   _playNext() {
@@ -156,9 +175,7 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
             alignment: AlignmentGeometry.bottomCenter,
             child: Container(
               width: double.maxFinite,
-              decoration: BoxDecoration(
-                color: const Color.fromARGB(50, 1, 63, 53),
-              ),
+              decoration: BoxDecoration(color: const Color.fromARGB(50, 1, 63, 53)),
               child: Column(
                 children: [
                   SizedBox(height: mq.padding.top),
@@ -169,18 +186,41 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
                     width: mq.size.width,
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(top: 10.0),
-                    child: Text(
-                      _video.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 24,
+                    padding: const EdgeInsets.only(top: 10.0, left: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          flex: 8,
+                          child: Text(
+                            _video.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            // textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
 
-                        color: Colors.white,
-                      ),
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        Flexible(
+                          flex: 2,
+                          child: InkWell(
+                            splashColor: Colors.teal,
+                            onTap: _addFav,
+                            child: Padding(
+                              padding: EdgeInsetsGeometry.all(5),
+                              child: Icon(
+                                size: 35,
+                                _isFav ? Icons.bookmark_added : Icons.bookmark_border,
+                                color: Colors.teal,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Expanded(
@@ -194,9 +234,7 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
                         }
                         final Video reletedVideo = _relatedVideos![index];
                         return ListTile(
-                          leading: Image.network(
-                            reletedVideo.thumbnails.highResUrl,
-                          ),
+                          leading: Image.network(reletedVideo.thumbnails.highResUrl),
                           title: Text(
                             reletedVideo.title,
                             style: TextStyle(fontSize: 18, color: Colors.white),
@@ -218,12 +256,7 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.only(
-                      left: 15.0,
-                      right: 15,
-                      bottom: 10,
-                      top: 23,
-                    ),
+                    padding: const EdgeInsets.only(left: 15.0, right: 15, bottom: 10, top: 23),
                     // width: mq.size.width,
                     child: StreamBuilder<PositionData>(
                       stream: positionDataStream(_audioPlayer),
@@ -235,10 +268,7 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
                           buffered: posData?.bufferPosition ?? Duration.zero,
                           progressBarColor: Colors.teal,
                           baseBarColor: Colors.white.withValues(alpha: 0.24),
-                          bufferedBarColor: Colors.white.withValues(
-                            alpha: 0.24,
-                          ),
-
+                          bufferedBarColor: Colors.white.withValues(alpha: 0.24),
                           thumbColor: Colors.teal[200],
                           timeLabelPadding: 5,
                           timeLabelTextStyle: TextStyle(
@@ -279,12 +309,6 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
                             decoration: BoxDecoration(
                               color: Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
-                              // border: Border.all(
-                              //   color: _loopPlay
-                              //       ? Colors.tealAccent[200]!
-                              //       : Colors.transparent,
-                              //   width: 1.5,
-                              // ),
                               boxShadow: [
                                 BoxShadow(
                                   blurRadius: 10,
@@ -297,20 +321,14 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
                             ),
                             child: Icon(
                               Icons.repeat,
-                              color: _loopPlay
-                                  ? Colors.teal[200]
-                                  : Colors.teal[300],
+                              color: _loopPlay ? Colors.teal[200] : Colors.teal[300],
                               size: _loopPlay ? 40 : 30,
                             ),
                           ),
                         ),
                         GestureDetector(
                           onTap: () {},
-                          child: Icon(
-                            Icons.skip_previous,
-                            color: Colors.teal[300],
-                            size: 50,
-                          ),
+                          child: Icon(Icons.skip_previous, color: Colors.teal[300], size: 50),
                         ),
                         GestureDetector(
                           onTap: _pauseAudioToggle,
@@ -320,22 +338,14 @@ class __FullScreenLoaderState extends State<_FullScreenLoader> {
                             size: 50,
                           ),
                         ),
-                        Icon(
-                          Icons.skip_next,
-                          color: Colors.teal[300],
-                          size: 50,
-                        ),
+                        Icon(Icons.skip_next, color: Colors.teal[300], size: 50),
                         InkWell(
                           splashColor: Colors.teal,
                           onTap: () {
                             log("tap");
                             widget.download(_video.url, 'mp3');
                           },
-                          child: Icon(
-                            Icons.download,
-                            color: Colors.teal[300],
-                            size: 30,
-                          ),
+                          child: Icon(Icons.download, color: Colors.teal[300], size: 30),
                         ),
                       ],
                     ),

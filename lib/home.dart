@@ -58,11 +58,7 @@ class _PrincipaleState extends State<Principale> {
                               value: progress,
                               strokeWidth: 12,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Color.lerp(
-                                  Colors.redAccent,
-                                  Colors.green,
-                                  progress,
-                                )!,
+                                Color.lerp(Colors.redAccent, Colors.green, progress)!,
                               ),
                               backgroundColor: Colors.grey[200],
                             ),
@@ -73,11 +69,7 @@ class _PrincipaleState extends State<Principale> {
                           style: TextStyle(
                             fontSize: 25,
                             fontWeight: FontWeight.bold,
-                            color: Color.lerp(
-                              Colors.redAccent,
-                              Colors.green[900],
-                              progress,
-                            )!,
+                            color: Color.lerp(Colors.redAccent, Colors.green[900], progress)!,
                           ),
                         ),
                       ],
@@ -161,9 +153,7 @@ class _PrincipaleState extends State<Principale> {
         if (type == "mp3") {
           // Invece di manifest.audioOnly, usiamo il video più leggero che contiene l'audio
           // Il formato '18' (360p) è perfetto: è piccolo e il download è garantito
-          content = manifest.muxed
-              .where((e) => e.videoQuality.toString().contains('360'))
-              .first;
+          content = manifest.muxed.where((e) => e.videoQuality.toString().contains('360')).first;
           log("Uso il flusso muxed leggero per estrarre l'audio");
         } else {
           content = manifest.muxed.withHighestBitrate();
@@ -308,8 +298,7 @@ class _PrincipaleState extends State<Principale> {
                           splashColor: Colors.green,
                           onTap: () => LoadingOverlay.of(context).show(
                             video: video,
-                            download: (url, type) =>
-                                _execute(url: url, type: type),
+                            download: (url, type) => _execute(url: url, type: type),
                           ),
                           child: Stack(
                             alignment: Alignment.bottomRight,
@@ -333,10 +322,7 @@ class _PrincipaleState extends State<Principale> {
                                     padding: const EdgeInsets.all(3.0),
                                     child: Text(
                                       _videoDuration(video.duration),
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                      ),
+                                      style: TextStyle(color: Colors.white, fontSize: 12),
                                     ),
                                   ),
                                 ),
@@ -348,10 +334,7 @@ class _PrincipaleState extends State<Principale> {
                           video.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         Text(video.author),
                         SizedBox(height: 20),
@@ -359,13 +342,11 @@ class _PrincipaleState extends State<Principale> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             ElevatedButton(
-                              onPressed: () =>
-                                  _execute(url: video.url, type: "mp3"),
+                              onPressed: () => _execute(url: video.url, type: "mp3"),
                               child: Icon(Icons.audiotrack),
                             ),
                             ElevatedButton(
-                              onPressed: () =>
-                                  _execute(url: video.url, type: "mp4"),
+                              onPressed: () => _execute(url: video.url, type: "mp4"),
                               child: Icon(Icons.videocam),
                             ),
                           ],
@@ -388,6 +369,7 @@ class _PrincipaleState extends State<Principale> {
         // ignore: prefer_const_constructors
         title: const Text("Yotube Mp3 Downloader and Beyond"),
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
