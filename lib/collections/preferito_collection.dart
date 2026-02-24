@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 part 'preferito_collection.g.dart';
 
@@ -17,4 +18,22 @@ class PreferitoCollection {
   List<String> tags = [];
   @Index()
   DateTime addedAt = DateTime.now();
+
+  Video toVideo() {
+    return Video(
+      VideoId(youtubeId),
+      title,
+      author,
+      ChannelId("UChiRQu1TjN13c4NfFKOcpFQ"),
+      null,
+      null,
+      null,
+      "",
+      Duration.zero,
+      ThumbnailSet(thumbnailUrl),
+      null,
+      Engagement(0, null, null),
+      false,
+    );
+  }
 }

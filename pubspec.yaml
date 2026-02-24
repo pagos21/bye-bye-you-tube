@@ -47,6 +47,7 @@ dependencies:
   rxdart: ^0.28.0
   audio_video_progress_bar: ^2.0.3
   google_nav_bar: ^5.0.7
+  youtube_player_iframe: ^5.2.2
   isar_community: 
     version: *isar_version
   isar_community_flutter_libs: # contains Isar Core

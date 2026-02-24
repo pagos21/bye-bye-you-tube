@@ -12,7 +12,7 @@ class Navbar extends StatefulWidget {
 
 class _NavbarState extends State<Navbar> {
   int _selectedMenu = 0;
-  final List<Widget> _menuPages = [Principale(), Preferiti()];
+  late final List<Widget> _menuPages = [Principale(), Preferiti()];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,7 +42,7 @@ class _NavbarState extends State<Navbar> {
           GButton(icon: Icons.favorite, text: "Preferiti"),
         ],
       ),
-      body: _menuPages[_selectedMenu],
+      body: IndexedStack(index: _selectedMenu, children: _menuPages),
     );
   }
 }

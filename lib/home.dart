@@ -288,7 +288,8 @@ class _PrincipaleState extends State<Principale> {
               itemBuilder: (context, index) {
                 final video = _searchRes[index];
                 return Card(
-                  elevation: 3,
+                  elevation: 6,
+                  shadowColor: Colors.teal,
                   margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
@@ -298,6 +299,7 @@ class _PrincipaleState extends State<Principale> {
                           splashColor: Colors.green,
                           onTap: () => LoadingOverlay.of(context).show(
                             video: video,
+                            isOnlyAudio: false,
                             download: (url, type) => _execute(url: url, type: type),
                           ),
                           child: Stack(
@@ -342,11 +344,19 @@ class _PrincipaleState extends State<Principale> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             ElevatedButton(
-                              onPressed: () => _execute(url: video.url, type: "mp3"),
+                              onPressed: () => LoadingOverlay.of(context).show(
+                                video: video,
+                                isOnlyAudio: true,
+                                download: (url, type) => _execute(url: url, type: type),
+                              ),
                               child: Icon(Icons.audiotrack),
                             ),
                             ElevatedButton(
-                              onPressed: () => _execute(url: video.url, type: "mp4"),
+                              onPressed: () => LoadingOverlay.of(context).show(
+                                video: video,
+                                isOnlyAudio: false,
+                                download: (url, type) => _execute(url: url, type: type),
+                              ),
                               child: Icon(Icons.videocam),
                             ),
                           ],
@@ -376,10 +386,6 @@ class _PrincipaleState extends State<Principale> {
           children: [
             TextField(
               controller: _linkController,
-              // onTap: () => _linkController.selection = TextSelection(
-              //   baseOffset: 0,
-              //   extentOffset: _linkController.value.text.length,
-              // ),
               onSubmitted: (_userInput == "")
                   ? null
                   : (val) {
@@ -407,10 +413,7 @@ class _PrincipaleState extends State<Principale> {
               ),
             ),
             const SizedBox(height: 30),
-            // Container(
-            //   padding: const EdgeInsets.symmetric(horizontal: 10),
-            //   child: ClipRRect(borderRadius: BorderRadius.circular(10), child: _content()),
-            // ),
+
             _risultatiBuilder(),
             const SizedBox(),
           ],

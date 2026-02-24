@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:u_down2/collections/preferito_collection.dart';
 import 'package:u_down2/db/db_service.dart';
+import 'package:u_down2/player.dart';
 
 class Preferiti extends StatelessWidget {
   const Preferiti({super.key});
@@ -23,6 +24,9 @@ class Preferiti extends StatelessWidget {
             itemBuilder: (context, index) {
               final fav = favs[index];
               return ListTile(
+                onTap: () => LoadingOverlay.of(
+                  context,
+                ).show(video: fav.toVideo(), download: (url, type) {}, isOnlyAudio: false),
                 leading: Image.network(fav.thumbnailUrl),
                 title: Text(fav.title),
                 subtitle: Text(fav.author),
