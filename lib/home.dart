@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:u_down2/better_player.dart';
 import 'package:u_down2/player.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
@@ -352,11 +353,16 @@ class _PrincipaleState extends State<Principale> {
                               child: Icon(Icons.audiotrack),
                             ),
                             ElevatedButton(
-                              onPressed: () => LoadingOverlay.of(context).show(
-                                video: video,
-                                isOnlyAudio: false,
-                                download: (url, type) => _execute(url: url, type: type),
-                              ),
+                              onPressed: () {
+                                Navigator.of(
+                                  context,
+                                ).push(MaterialPageRoute(builder: (context) => NeonTestPlayer()));
+                              },
+                              // onPressed: () => LoadingOverlay.of(context).show(
+                              //   video: video,
+                              //   isOnlyAudio: false,
+                              //   download: (url, type) => _execute(url: url, type: type),
+                              // ),
                               child: Icon(Icons.videocam),
                             ),
                           ],
